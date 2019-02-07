@@ -124,5 +124,5 @@ void loop() {
   } 
   
   // stop
-  while (1==1) {}
+  while (1==1) {delay(1000);}
 }

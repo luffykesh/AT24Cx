@@ -28,82 +28,71 @@ THE SOFTWARE.
 #include <Wire.h>
 
 /**
- * Constructor with AT24Cx EEPROM at index 0
- */
-AT24CX::AT24CX() {
-	init(0, 32);
-}
-
-/**
  * Constructor with AT24Cx EEPROM at given index and size of page
  */
 AT24CX::AT24CX(byte index, byte pageSize) {
 	init(index, pageSize);
+	eepromType=AT24CX_t;
 }
 
 /**
- * Constructor with AT24C32 EEPROM at index 0
- */
-AT24C32::AT24C32() {
-	init(0, 32);
-}
-/**
- * Constructor with AT24Cx EEPROM at given index
+ * Constructor with AT24Cx EEPROM at given index(default 0)
  */
 AT24C32::AT24C32(byte index) {
 	init(index, 32);
+	eepromType=AT24C32_t;
 }
 
 /**
- * Constructor with AT24C64 EEPROM at index 0
- */
-AT24C64::AT24C64() {
-	init(0, 32);
-}
-/**
- * Constructor with AT24C64 EEPROM at given index
+ * Constructor with AT24C64 EEPROM at given index(default 0)
  */
 AT24C64::AT24C64(byte index) {
 	init(index, 32);
+	eepromType=AT24C64_t;
 }
 
 /**
- * Constructor with AT24C128 EEPROM at index 0
- */
-AT24C128::AT24C128() {
-	init(0, 64);
-}
-/**
- * Constructor with AT24C128 EEPROM at given index
+ * Constructor with AT24C128 EEPROM at given index(default 0)
  */
 AT24C128::AT24C128(byte index) {
 	init(index, 64);
+	eepromType=AT24C128_t;
 }
 
 /**
- * Constructor with AT24C256 EEPROM at index 0
- */
-AT24C256::AT24C256() {
-	init(0, 64);
-}
-/**
- * Constructor with AT24C128 EEPROM at given index
+ * Constructor with AT24C128 EEPROM at given index(default 0)
  */
 AT24C256::AT24C256(byte index) {
 	init(index, 64);
+	eepromType=AT24C256_t;
 }
 
 /**
- * Constructor with AT24C512 EEPROM at index 0
- */
-AT24C512::AT24C512() {
-	init(0, 128);
-}
-/**
- * Constructor with AT24C512 EEPROM at given index
+ * Constructor with AT24C512 EEPROM at given index(default 0)
  */
 AT24C512::AT24C512(byte index) {
 	init(index, 128);
+	eepromType=AT24C512_t;
+}
+
+/*
+ * Constructor with AT24CM02 EEPROM at given index(default 0)
+ */
+AT24CM02::AT24CM02(byte index){
+	_id = AT24CX_ID | (index<<2 & 0x4);
+	_pageSize = 256;
+	eepromType=AT24CM02_t;
+	Wire.begin();
+}
+
+/*
+ * Constructor with AT24CM01 EEPROM at given index(default 0)
+ */
+AT24CM01::AT24CM01(byte index){
+	_id = AT24CX_ID | (index<<1 & 0x6);
+	_pageSize = 256;
+	eepromType=AT24CM01_t;
+	Wire.begin();
 }
 
 /**
@@ -126,7 +115,7 @@ void AT24CX::write(unsigned int address, byte data) {
     	Wire.write(address & 0xFF);
       	Wire.write(data);
     	Wire.endTransmission();
-    	delay(20);
+    	delay(10);
     }
 }
 
@@ -214,7 +203,8 @@ void AT24CX::write(unsigned int address, byte *data, int n) {
 	int offP;						// current offset in page
 	int nc = 0;						// next n bytes to write
 
-	// write alle bytes in multiple steps
+	// write all bytes in multiple steps
+	Serial.println(_id,BIN);
 	while (c > 0) {
 		// calc offset in page
 		offP = address % _pageSize;
@@ -224,6 +214,14 @@ void AT24CX::write(unsigned int address, byte *data, int n) {
 		c-=nc;
 		offD+=nc;
 		address+=nc;
+		if(offP+nc==_pageSize)
+		{
+			//re-calculate i2c id in case of CM01 and CM02, when page border encountered
+			if(eepromType==AT24CM01_t)
+				_id=(_id&0xFC)|(address>>16&0x3);
+			else if(eepromType==AT24CM02_t)
+				_id=(_id&0xFE)|(address>>16&0x1);
+		}
 	}
 }
 
@@ -239,7 +237,7 @@ void AT24CX::write(unsigned int address, byte *data, int offset, int n) {
     	byte *adr = data+offset;
     	Wire.write(adr, n);
     	Wire.endTransmission();
-    	delay(20);
+    	delay(10);
     }
 }
 
@@ -271,16 +269,26 @@ byte AT24CX::read(unsigned int address) {
 void AT24CX::read(unsigned int address, byte *data, int n) {
 	int c = n;
 	int offD = 0;
+	int offP;						// current offset in page
+	int nc = c;
 	// read until are n bytes read
 	while (c > 0) {
 		// read maximal 32 bytes
-		int nc = c;
-		if (nc > 32)
-			nc = 32;
+		// calc offset in page
+		offP = address % _pageSize;
+		nc = min(min(c,32), _pageSize - offP);
 		read(address, data, offD, nc);
 		address+=nc;
 		offD+=nc;
 		c-=nc;
+		if(offP+nc==_pageSize)
+		{
+			//re-calculate i2c id in case of CM01 and CM02, when page border encountered
+			if(eepromType==AT24CM01_t)
+				_id=(_id&0xFC)|(address>>16&0x3);
+			else if(eepromType==AT24CM02_t)
+				_id=(_id&0xFE)|(address>>16&0x1);
+		}
 	}
 }
 
