@@ -1,9 +1,10 @@
 /**
 
 AT24CX.h
-Library for using the EEPROM AT24C32/64
+Library for using the EEPROM AT24C32-512/M01/M02
 
-Copyright (c) 2014 Christian Paul
+Original work Copyright (c) 2014 Christian Paul
+Modified work Copyright (c) 2019 Rushikesh Patel
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
