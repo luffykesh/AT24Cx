@@ -214,9 +214,9 @@ void AT24CX::write(unsigned int address, byte *data, int n) {
 		c-=nc;
 		offD+=nc;
 		address+=nc;
-		if(offP+nc==_pageSize)
+		if(address%65536==0)
 		{
-			//re-calculate i2c id in case of CM01 and CM02, when page border encountered
+			//re-calculate i2c address in case of AT24CM01 and AT24CM02 when crossing 65536 bytes border
 			if(eepromType==AT24CM01_t)
 				_id=(_id&0xFC)|(address>>16&0x3);
 			else if(eepromType==AT24CM02_t)
