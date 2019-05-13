@@ -159,6 +159,7 @@ void AT24CX::writeChars(unsigned int address, char *data, int length) {
  * Read integer
  */
 unsigned int AT24CX::readInt(unsigned int address) {
+	memset(_b,0,sizeof(unsigned int));//for platforms that have 32bit integers
 	read(address, _b, 2);
 	return *(unsigned int*)&_b[0];
 }
@@ -217,9 +218,9 @@ void AT24CX::write(unsigned int address, byte *data, int n) {
 		if(address%65536==0)
 		{
 			//re-calculate i2c address in case of AT24CM01 and AT24CM02 when crossing 65536 bytes border
-			if(eepromType==AT24CM01_t)
+			if(eepromType==AT24CM02_t)
 				_id=(_id&0xFC)|(address>>16&0x3);
-			else if(eepromType==AT24CM02_t)
+			else if(eepromType==AT24CM01_t)
 				_id=(_id&0xFE)|(address>>16&0x1);
 		}
 	}
@@ -229,16 +230,16 @@ void AT24CX::write(unsigned int address, byte *data, int n) {
  * Write sequence of n bytes from offset
  */
 void AT24CX::write(unsigned int address, byte *data, int offset, int n) {
-    Wire.beginTransmission(_id);
-    if (Wire.endTransmission()==0) {
-     	Wire.beginTransmission(_id);
-    	Wire.write(address >> 8);
-    	Wire.write(address & 0xFF);
-    	byte *adr = data+offset;
-    	Wire.write(adr, n);
-    	Wire.endTransmission();
-    	delay(10);
-    }
+  Wire.beginTransmission(_id);
+  if (Wire.endTransmission()==0) {
+   	Wire.beginTransmission(_id);
+  	Wire.write(address >> 8);
+  	Wire.write(address & 0xFF);
+  	byte *adr = data+offset;
+  	Wire.write(adr, n);
+  	Wire.endTransmission();
+  	delay(10);
+  }
 }
 
 /**
@@ -273,20 +274,20 @@ void AT24CX::read(unsigned int address, byte *data, int n) {
 	int nc = c;
 	// read until are n bytes read
 	while (c > 0) {
-		// read maximal 32 bytes
 		// calc offset in page
 		offP = address % _pageSize;
+		// read maximal 32 bytes
 		nc = min(min(c,32), _pageSize - offP);
 		read(address, data, offD, nc);
 		address+=nc;
 		offD+=nc;
 		c-=nc;
-		if(offP+nc==_pageSize)
+		if(address%65536==0)
 		{
 			//re-calculate i2c id in case of CM01 and CM02, when page border encountered
-			if(eepromType==AT24CM01_t)
+			if(eepromType==AT24CM02_t)
 				_id=(_id&0xFC)|(address>>16&0x3);
-			else if(eepromType==AT24CM02_t)
+			else if(eepromType==AT24CM01_t)
 				_id=(_id&0xFE)|(address>>16&0x1);
 		}
 	}
@@ -312,4 +313,3 @@ void AT24CX::read(unsigned int address, byte *data, int offset, int n) {
     	}
     }
 }
-
