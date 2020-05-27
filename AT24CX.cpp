@@ -31,78 +31,87 @@ THE SOFTWARE.
 /**
  * Constructor with AT24Cx EEPROM at given index and size of page
  */
-AT24CX::AT24CX(byte index, byte pageSize) {
-	init(index, pageSize);
+AT24CX::AT24CX(byte index, byte pageSize, int wp_pin) {
+	init(index, pageSize, wp_pin);
 	eepromType=AT24CX_t;
 }
 
 /**
  * Constructor with AT24Cx EEPROM at given index(default 0)
  */
-AT24C32::AT24C32(byte index) {
-	init(index, 32);
+AT24C32::AT24C32(byte index, int wp_pin) {
+	init(index, 32, wp_pin);
 	eepromType=AT24C32_t;
 }
 
 /**
  * Constructor with AT24C64 EEPROM at given index(default 0)
  */
-AT24C64::AT24C64(byte index) {
-	init(index, 32);
+AT24C64::AT24C64(byte index, int wp_pin) {
+	init(index, 32, wp_pin);
 	eepromType=AT24C64_t;
 }
 
 /**
  * Constructor with AT24C128 EEPROM at given index(default 0)
  */
-AT24C128::AT24C128(byte index) {
-	init(index, 64);
+AT24C128::AT24C128(byte index, int wp_pin) {
+	init(index, 64, wp_pin);
 	eepromType=AT24C128_t;
 }
 
 /**
  * Constructor with AT24C128 EEPROM at given index(default 0)
  */
-AT24C256::AT24C256(byte index) {
-	init(index, 64);
+AT24C256::AT24C256(byte index, int wp_pin) {
+	init(index, 64, wp_pin);
 	eepromType=AT24C256_t;
 }
 
 /**
  * Constructor with AT24C512 EEPROM at given index(default 0)
  */
-AT24C512::AT24C512(byte index) {
-	init(index, 128);
+AT24C512::AT24C512(byte index, int wp_pin) {
+	init(index, 128, wp_pin);
 	eepromType=AT24C512_t;
 }
 
 /*
  * Constructor with AT24CM02 EEPROM at given index(default 0)
  */
-AT24CM02::AT24CM02(byte index){
+AT24CM02::AT24CM02(byte index, int wp_pin){
 	_id = AT24CX_ID | (index<<2 & 0x4);
 	_pageSize = 256;
 	eepromType=AT24CM02_t;
+	_wp_pin = wp_pin;
 	Wire.begin();
+	if(wp_pin>=0)
+		pinMode(wp_pin, OUTPUT);
 }
 
 /*
  * Constructor with AT24CM01 EEPROM at given index(default 0)
  */
-AT24CM01::AT24CM01(byte index){
+AT24CM01::AT24CM01(byte index, int wp_pin){
 	_id = AT24CX_ID | (index<<1 & 0x6);
 	_pageSize = 256;
 	eepromType=AT24CM01_t;
+	_wp_pin = wp_pin;
 	Wire.begin();
+	if(wp_pin>=0)
+		pinMode(wp_pin, OUTPUT);
 }
 
 /**
  * Init
  */
-void AT24CX::init(byte index, byte pageSize) {
+void AT24CX::init(byte index, byte pageSize, int wp_pin) {
 	_id = AT24CX_ID | (index & 0x7);
 	_pageSize = pageSize;
+	_wp_pin = wp_pin;
 	Wire.begin();
+	if(wp_pin>=0)
+		pinMode(wp_pin, OUTPUT);
 }
 
 /**
@@ -111,12 +120,14 @@ void AT24CX::init(byte index, byte pageSize) {
 void AT24CX::write(unsigned int address, byte data) {
     Wire.beginTransmission(_id);
     if(Wire.endTransmission()==0) {
-    	Wire.beginTransmission(_id);
-    	Wire.write(address >> 8);
-    	Wire.write(address & 0xFF);
-      	Wire.write(data);
-    	Wire.endTransmission();
-    	delay(10);
+      DISABLE_WP();
+      Wire.beginTransmission(_id);
+      Wire.write(address >> 8);
+      Wire.write(address & 0xFF);
+        Wire.write(data);
+      Wire.endTransmission();
+      ENABLE_WP();
+      delay(10);
     }
 }
 
@@ -232,13 +243,15 @@ void AT24CX::write(unsigned int address, byte *data, int n) {
 void AT24CX::write(unsigned int address, byte *data, int offset, int n) {
   Wire.beginTransmission(_id);
   if (Wire.endTransmission()==0) {
-   	Wire.beginTransmission(_id);
-  	Wire.write(address >> 8);
-  	Wire.write(address & 0xFF);
-  	byte *adr = data+offset;
-  	Wire.write(adr, n);
-  	Wire.endTransmission();
-  	delay(10);
+    DISABLE_WP(); //disable write protection.
+    Wire.beginTransmission(_id);
+    Wire.write(address >> 8);
+    Wire.write(address & 0xFF);
+    byte *adr = data+offset;
+    Wire.write(adr, n);
+    Wire.endTransmission();
+    ENABLE_WP(); //enable write protection
+    delay(10);
   }
 }
 

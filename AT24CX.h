@@ -39,6 +39,9 @@ typedef uint8_t byte;
 // 0x50
 #define AT24CX_ID B1010000
 
+#define DISABLE_WP() do{if(_wp_pin>=0)digitalWrite(_wp_pin, LOW);}while(false);
+#define ENABLE_WP() do{if(_wp_pin>=0)digitalWrite(_wp_pin, HIGH);}while(false);
+
 enum eeprom_type_t{
 	AT24CX_t,
 	AT24C32_t,
@@ -53,7 +56,7 @@ enum eeprom_type_t{
 // general class definition
 class AT24CX {
 public:
-	AT24CX(byte index=0, byte pageSize=32);
+	AT24CX(byte index=0, byte pageSize=32, int wp_pin=-1);
 	void write(unsigned int address, byte data);
 	void write(unsigned int address, byte *data, int n);
 	void writeInt(unsigned int address, unsigned int data);
@@ -69,10 +72,11 @@ public:
 	double readDouble(unsigned int address);
 	void readChars(unsigned int address, char *data, int n);
 protected:
-	void init(byte index, byte pageSize);
+	void init(byte index, byte pageSize, int wp_pin);
 	int _id;
 	byte _b[8];
 	uint16_t _pageSize;
+	int _wp_pin; //write protect pin
 	eeprom_type_t eepromType;
 private:
 	void read(unsigned int address, byte *data, int offset, int n);
@@ -82,37 +86,37 @@ private:
 // AT24C32 class definiton
 class AT24C32 : public AT24CX {
 public:
-	AT24C32(byte index=0);
+	AT24C32(byte index=0, int wp_pin=-1);
 };
 
 // AT24C64 class definiton
 class AT24C64 : public AT24CX {
 public:
-	AT24C64(byte index=0);
+	AT24C64(byte index=0, int wp_pin=-1);
 };
 
 // AT24C128 class definiton
 class AT24C128 : public AT24CX {
 public:
-	AT24C128(byte index=0);
+	AT24C128(byte index=0, int wp_pin=-1);
 };
 
 // AT24C256 class definiton
 class AT24C256 : public AT24CX {
 public:
-	AT24C256(byte index=0);
+	AT24C256(byte index=0, int wp_pin=-1);
 };
 
 // AT24C512 class definiton
 class AT24C512 : public AT24CX {
 public:
-	AT24C512(byte index=0);
+	AT24C512(byte index=0, int wp_pin=-1);
 };
 
 //AT24CM02 class definition
 class AT24CM02 : public AT24CX {
 public:
-	AT24CM02(byte index=0);
+	AT24CM02(byte index=0, int wp_pin=-1);
 	void write(unsigned int address, byte data){
 		_id=(_id&0xFC)|(address>>16&0x3); //insert 17th and 16th bit of data word address in i2c address
 		AT24CX::write(address,data);
@@ -135,7 +139,7 @@ public:
 //AT24CM01 class definition
 class AT24CM01 : public AT24CX {
 public:
-	AT24CM01(byte index=0);
+	AT24CM01(byte index=0, int wp_pin=-1);
 	void write(unsigned int address, byte data){
 		_id=(_id&0xFE)|(address>>16&0x1); //insert 16th bit of data word address in i2c address
 		AT24CX::write(address,data);
